@@ -2,14 +2,6 @@
 input_dir = ARGS[1]
 output_dir = ARGS[2]
 
-# Scale factor
-scale = Missing
-if length(ARGS) > 2
-    scale = parse(Int, ARGS[3])
-else
-    scale = 200
-end
-
 # Create output directory if it doesn't exist
 if !isdir(output_dir)
     mkdir(output_dir)
@@ -27,15 +19,18 @@ println("Found $(length(image_files)) images to process")
 # Process each image
 for filename in image_files
     input_path = joinpath(input_dir, filename)
+
     output_path = joinpath(output_dir, filename)
+    path, extension = splitext(output_path)
+    output_path_svg = path * ".svg"
 
     # Use ImageMagick convert command with nearest neighbor sampling
     try
-        run(`magick $input_path -filter point -resize $scale% $output_path`)
+        run(`psvg -i $input_path -o $output_path_svg`)
         println("Processed: $filename")
     catch e
         println("Error processing $filename: $e")
     end
 end
 
-println("Done! Resized images saved to '$output_dir' directory")
+println("Done! SVG images saved to '$output_dir' directory")
