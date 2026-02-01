@@ -1,9 +1,9 @@
 # ==============================================================================
 # Recursive Image Scaler
 # ==============================================================================
-# Usage: julia image_scaler.jl <input_directory> <scale_size>
-# Example: julia resize.jl "./photos" "50%"
-# Example: julia resize.jl "./assets" "800x600"
+# Usage: julia image_scaler.jl <input_directory> <scale_size> <flatten>
+# Example: julia resize.jl "./photos" "50%" true
+# Example: julia resize.jl "./assets" "800x600" false
 # ==============================================================================
 
 using Printf
@@ -17,7 +17,7 @@ function is_image(filename::String)
     return ext in IMAGE_EXTENSIONS
 end
 
-function scale_images_recursive(input_dir::String, scale_size::String)
+function scale_images_recursive(input_dir::String, scale_size::String, flatten::Bool)
     if !isdir(input_dir)
         println("Error: Input directory '$input_dir' does not exist.")
         exit(1)
@@ -25,12 +25,19 @@ function scale_images_recursive(input_dir::String, scale_size::String)
 
     clean_input = rstrip(abspath(input_dir), ['/', '\\'])
     output_dir = clean_input * "_scaled"
+    if flatten
+        output_dir *= "_flattened"
+    end
 
     println("$clean_input -> $output_dir ($scale_size)")
 
     for (root, _, files) in walkdir(clean_input)
         rel_path = relpath(root, clean_input)
-        target_dir = joinpath(output_dir, rel_path)
+        if flatten
+            target_dir = output_dir
+        else
+            target_dir = joinpath(output_dir, rel_path)
+        end
 
         if !isdir(target_dir)
             mkpath(target_dir)
@@ -62,5 +69,11 @@ if length(ARGS) < 2
     println("Usage: julia resize.jl <input_directory> <scale_size>")
     exit(1)
 else
-    scale_images_recursive(ARGS[1], ARGS[2])
+    flatten = false
+    if length(ARGS) == 3
+        if ARGS[3] == "true"
+            flatten = true
+        end
+    end
+    scale_images_recursive(ARGS[1], ARGS[2], flatten)
 end

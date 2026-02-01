@@ -72,7 +72,9 @@ if length(ARGS) == 1
 else
     flatten = false
     if length(ARGS) == 2
-        flatten = true
+        if ARGS[2] == "true"
+            flatten = true
+        end
     end
     convert_images_recursive(ARGS[1], flatten)
 end
