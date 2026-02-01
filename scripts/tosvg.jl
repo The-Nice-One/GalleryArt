@@ -1,8 +1,8 @@
 # ==============================================================================
 # Recursive to-SVG
 # ==============================================================================
-# Usage: julia tosvg.jl <input_directory>
-# Example: julia tosvg.jl "./photos"
+# Usage: julia tosvg.jl <input_directory> <flatten>
+# Example: julia tosvg.jl "./photos" true
 # ==============================================================================
 
 using Printf
@@ -16,7 +16,7 @@ function is_image(filename::String)
     return ext in IMAGE_EXTENSIONS
 end
 
-function convert_images_recursive(input_dir::String)
+function convert_images_recursive(input_dir::String, flatten::Bool)
     if !isdir(input_dir)
         println("Error: Input directory '$input_dir' does not exist.")
         exit(1)
@@ -24,12 +24,19 @@ function convert_images_recursive(input_dir::String)
 
     clean_input = rstrip(abspath(input_dir), ['/', '\\'])
     output_dir = clean_input * "_svg"
+    if flatten
+        output_dir *= "_flattened"
+    end
 
     println("$clean_input -> $output_dir")
 
     for (root, _, files) in walkdir(clean_input)
         rel_path = relpath(root, clean_input)
-        target_dir = joinpath(output_dir, rel_path)
+        if flatten
+            target_dir = output_dir
+        else
+            target_dir = joinpath(output_dir, rel_path)
+        end
 
         if !isdir(target_dir)
             mkpath(target_dir)
@@ -59,9 +66,13 @@ function convert_images_recursive(input_dir::String)
     println("\nDone! Check the folder: $output_dir")
 end
 
-if length(ARGS) < 1
-    println("Usage: julia tosvg.jl <input_directory>")
+if length(ARGS) == 1
+    println("Usage: julia tosvg.jl <input_directory> <flatten>")
     exit(1)
 else
-    convert_images_recursive(ARGS[1])
+    flatten = false
+    if length(ARGS) == 2
+        flatten = true
+    end
+    convert_images_recursive(ARGS[1], flatten)
 end
