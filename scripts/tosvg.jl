@@ -1,36 +1,67 @@
-# Directory paths
-input_dir = ARGS[1]
-output_dir = ARGS[2]
+# ==============================================================================
+# Recursive to-SVG
+# ==============================================================================
+# Usage: julia tosvg.jl <input_directory>
+# Example: julia tosvg.jl "./photos"
+# ==============================================================================
 
-# Create output directory if it doesn't exist
-if !isdir(output_dir)
-    mkdir(output_dir)
+using Printf
+
+# Configuration: Supported image extensions
+const IMAGE_EXTENSIONS = Set([".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".gif", ".webp"])
+
+# Helper to check if a file is an image based on extension
+function is_image(filename::String)
+    _, ext = splitext(lowercase(filename))
+    return ext in IMAGE_EXTENSIONS
 end
 
-# Image extensions to process
-image_extensions = [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"]
-
-# Get all image files in the input directory
-files = readdir(input_dir)
-image_files = filter(f -> any(endswith(lowercase(f), ext) for ext in image_extensions), files)
-
-println("Found $(length(image_files)) images to process")
-
-# Process each image
-for filename in image_files
-    input_path = joinpath(input_dir, filename)
-
-    output_path = joinpath(output_dir, filename)
-    path, extension = splitext(output_path)
-    output_path_svg = path * ".svg"
-
-    # Use ImageMagick convert command with nearest neighbor sampling
-    try
-        run(`psvg -i $input_path -o $output_path_svg`)
-        println("Processed: $filename")
-    catch e
-        println("Error processing $filename: $e")
+function convert_images_recursive(input_dir::String)
+    if !isdir(input_dir)
+        println("Error: Input directory '$input_dir' does not exist.")
+        exit(1)
     end
+
+    clean_input = rstrip(abspath(input_dir), ['/', '\\'])
+    output_dir = clean_input * "_svg"
+
+    println("$clean_input -> $output_dir")
+
+    for (root, _, files) in walkdir(clean_input)
+        rel_path = relpath(root, clean_input)
+        target_dir = joinpath(output_dir, rel_path)
+
+        if !isdir(target_dir)
+            mkpath(target_dir)
+        end
+
+        for file in files
+            if is_image(file)
+                src_file = joinpath(root, file)
+                dest_file = joinpath(target_dir, file)
+                path, extension = splitext(dest_file)
+                dest_file_svg = path * ".svg"
+                try
+                    cmd = `psvg -i $src_file -o $dest_file_svg`
+                    run(cmd)
+
+                    println("[OK] Converted: $rel_path/$file")
+                catch e
+                    println("[ERROR] Failed to convert $file: $e")
+                end
+            else
+                # cp(joinpath(root, file), joinpath(target_dir, file), force=true)
+                # println("[SKIP] Non-image: $file")
+            end
+        end
+    end
+
+    println("\nDone! Check the folder: $output_dir")
 end
 
-println("Done! SVG images saved to '$output_dir' directory")
+if length(ARGS) < 1
+    println("Usage: julia tosvg.jl <input_directory>")
+    exit(1)
+else
+    convert_images_recursive(ARGS[1])
+end
