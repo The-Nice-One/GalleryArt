@@ -48,7 +48,7 @@ function scale_images_recursive(input_dir::String, scale_size::String, flatten::
                 src_file = joinpath(root, file)
                 dest_file = joinpath(target_dir, file)
                 try
-                    cmd = `magick "$src_file" -resize $scale_size -filter point "$dest_file"`
+                    cmd = `convert "$src_file" -filter point -resize $scale_size "$dest_file"`
                     run(cmd)
 
                     println("[OK] Scaled: $rel_path/$file")
