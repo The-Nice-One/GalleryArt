@@ -50,8 +50,8 @@ function convert_images_recursive(input_dir::String)
                     println("[ERROR] Failed to convert $file: $e")
                 end
             else
-                # cp(joinpath(root, file), joinpath(target_dir, file), force=true)
-                # println("[SKIP] Non-image: $file")
+                cp(joinpath(root, file), joinpath(target_dir, file), force=true)
+                println("[SKIP] Non-image: $file")
             end
         end
     end
